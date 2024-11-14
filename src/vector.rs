@@ -10,6 +10,8 @@ use std::{
 pub struct Probability;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct General;
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Unit;
 
 /// A generic N sized vector
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -35,7 +37,7 @@ impl<const N: usize, TYPE: Debug, Idx: SliceIndex<[f32], Output = f32>> IndexMut
     }
 }
 
-impl<const N: usize> Default for Vector<N, General> {
+impl<const N: usize, TYPE: Debug> Default for Vector<N, TYPE> {
     fn default() -> Self {
         Self {
             data: [0f32; N],
@@ -61,5 +63,32 @@ impl<const N: usize> Vector<N, General> {
         }
 
         Some(vec)
+    }
+}
+
+impl<const N: usize, TYPE: Debug> Vector<N, TYPE> {
+    pub fn magnitude(&self) -> f32 {
+        self.data.iter().map(|val| val.powi(2)).sum::<f32>().sqrt()
+    }
+
+    pub fn unit_vector(&self) -> Vector<N, Unit> {
+        let mut unit_vec = Vector::default();
+        let magnitude = self.magnitude();
+
+        for i in 0..N {
+            unit_vec[i] = self[i] / magnitude;
+        }
+
+        unit_vec
+    }
+
+    pub fn probability_vector(&self) -> Option<Vector<N, Probability>> {
+        if self.data.iter().sum::<f32>() == 1.0 {
+            let mut new_vec = Vector::default();
+            new_vec.data = self.data;
+            Some(new_vec)
+        } else {
+            None
+        }
     }
 }

@@ -91,6 +91,10 @@ impl<const M: usize, const N: usize> Matrix<M, N, General> {
 
         Some(mat)
     }
+
+    pub fn matrix_multiplication<const L: usize>(&self, right_matrix: Matrix<N, L>) {
+        let mut mat: Matrix<M, L> = Matrix::zero_matrix();
+    }
 }
 
 impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
