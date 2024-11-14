@@ -4,7 +4,6 @@ use std::{
     fmt::Debug,
     marker::PhantomData,
     ops::{Index, IndexMut},
-    slice::SliceIndex,
 };
 
 use crate::vector::Vector;
@@ -34,6 +33,26 @@ impl<const M: usize, const N: usize> Default for Matrix<M, N, General> {
             data: [[0f32; N]; M],
             phantom_type: PhantomData,
         }
+    }
+}
+
+impl<const M: usize, const N: usize, TYPE: Debug> Index<usize> for Matrix<M, N, TYPE> {
+    type Output = [f32];
+    fn index(&self, index: usize) -> &Self::Output {
+        self.data.index(index)
+    }
+}
+
+impl<const M: usize, const N: usize, TYPE: Debug> IndexMut<usize> for Matrix<M, N, TYPE> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.data.index_mut(index)
+    }
+}
+
+impl<const M: usize, const N: usize, TYPE: Debug + Copy> std::ops::Mul<f32> for Matrix<M, N, TYPE> {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self::Output {
+        self.scalar_multiply(rhs)
     }
 }
 
@@ -72,7 +91,9 @@ impl<const M: usize, const N: usize> Matrix<M, N, General> {
 
         Some(mat)
     }
+}
 
+impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
     pub fn scalar_multiply(&self, k: f32) -> Self {
         let mut mat = *self;
 
@@ -83,18 +104,5 @@ impl<const M: usize, const N: usize> Matrix<M, N, General> {
         }
 
         mat
-    }
-}
-
-impl<const M: usize, const N: usize> Index<usize> for Matrix<M, N, General> {
-    type Output = [f32];
-    fn index(&self, index: usize) -> &Self::Output {
-        self.data.index(index)
-    }
-}
-
-impl<const M: usize, const N: usize> IndexMut<usize> for Matrix<M, N, General> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.data.index_mut(index)
     }
 }

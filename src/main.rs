@@ -6,5 +6,6 @@ fn main() {
     let vec3: Vector<3> = Vector::from_data(&[7f32, 8f32, 9f32]).unwrap();
 
     let mat = Matrix::from_vectors([vec1, vec2, vec3]);
+    let mat = mat * 2f32;
     println!("{mat:?}");
 }
