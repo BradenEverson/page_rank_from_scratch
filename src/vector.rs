@@ -91,4 +91,8 @@ impl<const N: usize, TYPE: Debug> Vector<N, TYPE> {
             None
         }
     }
+
+    pub fn contains_zero(&self) -> bool {
+        self.data.contains(&0f32)
+    }
 }

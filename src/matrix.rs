@@ -16,9 +16,7 @@ pub struct Echelon;
 pub struct ReducedRowEchelon;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Stochastic<STATE>(PhantomData<STATE>);
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Regular;
+pub struct Stochastic;
 
 /// An M x N matrix
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -92,8 +90,8 @@ impl<const M: usize, const N: usize> Matrix<M, N, General> {
         Some(mat)
     }
 
-    pub fn matrix_multiplication<const L: usize>(&self, right_matrix: Matrix<N, L>) {
-        let mut mat: Matrix<M, L> = Matrix::zero_matrix();
+    pub fn stochastic_matrix(&self) -> Option<Matrix<N, M, Stochastic>> {
+        todo!()
     }
 }
 
