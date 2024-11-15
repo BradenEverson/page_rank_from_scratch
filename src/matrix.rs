@@ -89,13 +89,17 @@ impl<const M: usize, const N: usize> Matrix<M, N, General> {
 
         Some(mat)
     }
-
-    pub fn stochastic_matrix(&self) -> Option<Matrix<N, M, Stochastic>> {
-        todo!()
-    }
 }
 
 impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
+    pub fn stochastic_matrix(&self) -> Option<Matrix<N, M, Stochastic>> {
+        todo!()
+    }
+
+    pub fn column_vectors(&self) -> [Vector<M, General>; N] {
+        todo!()
+    }
+
     pub fn scalar_multiply(&self, k: f32) -> Self {
         let mut mat = *self;
 
