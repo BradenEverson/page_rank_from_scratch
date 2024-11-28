@@ -63,6 +63,15 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy, OTHER: Debug + Copy>
     }
 }
 
+impl<const M: usize, const N: usize, TYPE: Debug + Copy, OTHER: Debug + Copy>
+    std::ops::Sub<Matrix<M, N, OTHER>> for Matrix<M, N, TYPE>
+{
+    type Output = Matrix<M, N, General>;
+    fn sub(self, rhs: Matrix<M, N, OTHER>) -> Self::Output {
+        self + (rhs * -1f32)
+    }
+}
+
 impl<const M: usize, const N: usize> Matrix<M, N, General> {
     pub fn from_vectors(vecs: [Vector<M>; N]) -> Self {
         let mut mat = Self::zero_matrix();
@@ -238,6 +247,23 @@ mod tests {
             Matrix::from_vectors([
                 Vector::from_data([2f32, 4f32]),
                 Vector::from_data([2f32, 4f32]),
+            ])
+        )
+    }
+
+    #[test]
+    pub fn matrix_subtraction() {
+        let matrix = Matrix::from_vectors([
+            Vector::from_data([1f32, 2f32]),
+            Vector::from_data([1f32, 2f32]),
+        ]);
+        let matrix = matrix - matrix;
+
+        assert_eq!(
+            matrix,
+            Matrix::from_vectors([
+                Vector::from_data([0f32, 0f32]),
+                Vector::from_data([0f32, 0f32]),
             ])
         )
     }
