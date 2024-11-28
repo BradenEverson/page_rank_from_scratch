@@ -51,18 +51,14 @@ impl<const N: usize> Vector<N, General> {
         Self::default()
     }
 
-    pub fn from_data(data: &[f32]) -> Option<Self> {
-        if data.len() != N {
-            return None;
-        }
-
+    pub fn from_data(data: [f32; N]) -> Self {
         let mut vec = Self::zero_vector();
 
         for col in 0..N {
             vec.data[col] = data[col];
         }
 
-        Some(vec)
+        vec
     }
 }
 

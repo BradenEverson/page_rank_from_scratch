@@ -25,7 +25,7 @@ pub struct Matrix<const M: usize, const N: usize, TYPE: Debug = General> {
     phantom_type: PhantomData<TYPE>,
 }
 
-impl<const M: usize, const N: usize> Default for Matrix<M, N, General> {
+impl<const M: usize, const N: usize, TYPE: Debug> Default for Matrix<M, N, TYPE> {
     fn default() -> Self {
         Self {
             data: [[0f32; N]; M],
@@ -92,12 +92,27 @@ impl<const M: usize, const N: usize> Matrix<M, N, General> {
 }
 
 impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
-    pub fn stochastic_matrix(&self) -> Option<Matrix<N, M, Stochastic>> {
-        todo!()
+    pub fn stochastic_matrix(&self) -> Option<Matrix<M, N, Stochastic>> {
+        let columns = self.column_vectors();
+        let mut stochastic: Matrix<M, N, Stochastic> = Matrix::default();
+        stochastic.data = self.data.clone();
+
+        for vector in columns {
+            let _ = vector.probability_vector()?;
+        }
+
+        Some(stochastic)
     }
 
-    pub fn column_vectors(&self) -> [Vector<M, General>; N] {
-        todo!()
+    pub fn column_vectors(&self) -> [Vector<M, crate::vector::General>; N] {
+        let mut vectors = [Vector::zero_vector(); N];
+        for x in 0..N {
+            let vector = &mut vectors[x];
+            for y in 0..M {
+                vector[y] = self[x][y];
+            }
+        }
+        vectors
     }
 
     pub fn scalar_multiply(&self, k: f32) -> Self {
@@ -110,5 +125,43 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
         }
 
         mat
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::vector::Vector;
+
+    use super::Matrix;
+
+    #[test]
+    pub fn column_vectors() {
+        let matrix = Matrix::from_vectors([
+            Vector::from_data([1f32, 2f32]),
+            Vector::from_data([1f32, 2f32]),
+        ]);
+
+        let vec_space = matrix.column_vectors();
+        assert_eq!(
+            vec_space,
+            [
+                Vector::from_data([1f32, 1f32]),
+                Vector::from_data([2f32, 2f32])
+            ]
+        )
+    }
+
+    #[test]
+    pub fn stochastic_matrix() {
+        let matrix =
+            Matrix::from_vectors([Vector::from_data([0.5, 0.2]), Vector::from_data([0.5, 0.8])]);
+
+        let non_stochastic_matrix = Matrix::from_vectors([
+            Vector::from_data([1f32, 2f32]),
+            Vector::from_data([1f32, 2f32]),
+        ]);
+
+        assert!(matrix.stochastic_matrix().is_some());
+        assert!(non_stochastic_matrix.stochastic_matrix().is_none())
     }
 }
