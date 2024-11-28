@@ -149,6 +149,28 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
         vectors
     }
 
+    pub fn row_vectors(&self) -> [Vector<N, crate::vector::General>; M] {
+        let mut vectors = [Vector::zero_vector(); M];
+
+        for y in 0..M {
+            let vector = &mut vectors[y];
+            for x in 0..N {
+                vector[x] = self[x][y];
+            }
+        }
+
+        vectors
+    }
+
+    pub fn reduced_row_echelon(&self) -> Matrix<M, N, ReducedRowEchelon> {
+        let rows = self.row_vectors();
+        // For each row, get the first non-zero position and scale vector so that is's 1. For all
+        // other vectors, if there is a non-zero term in that position, subtract this row from that
+        // row scaled by whatever that value is. Then we can do some clean up and move vectors up
+        // based on precedence of leading 1s
+        todo!()
+    }
+
     pub fn scalar_multiply(&self, k: f32) -> Matrix<M, N, General> {
         let mut mat = *self;
 

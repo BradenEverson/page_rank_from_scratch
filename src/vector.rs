@@ -22,6 +22,31 @@ pub struct Vector<const N: usize, TYPE: Debug = General> {
     phantom_type: PhantomData<TYPE>,
 }
 
+impl<const N: usize, TYPE: Debug> std::ops::Mul<f32> for Vector<N, TYPE> {
+    type Output = Vector<N, General>;
+    fn mul(self, rhs: f32) -> Self::Output {
+        self.scalar_multiply(rhs)
+    }
+}
+
+impl<const N: usize, TYPE: Debug, OTHER: Debug> std::ops::Sub<Vector<N, OTHER>>
+    for Vector<N, TYPE>
+{
+    type Output = Vector<N, General>;
+    fn sub(self, rhs: Vector<N, OTHER>) -> Self::Output {
+        self + (rhs * -1f32)
+    }
+}
+
+impl<const N: usize, TYPE: Debug, OTHER: Debug> std::ops::Add<Vector<N, OTHER>>
+    for Vector<N, TYPE>
+{
+    type Output = Vector<N, General>;
+    fn add(self, rhs: Vector<N, OTHER>) -> Self::Output {
+        self.vector_addition(&rhs)
+    }
+}
+
 impl<const N: usize, TYPE: Debug, Idx: SliceIndex<[f32], Output = f32>> Index<Idx>
     for Vector<N, TYPE>
 {
@@ -93,6 +118,26 @@ impl<const N: usize, TYPE: Debug> Vector<N, TYPE> {
     pub fn contains_zero(&self) -> bool {
         self.data.contains(&0f32)
     }
+
+    pub fn vector_addition<OTHER: Debug>(&self, other: &Vector<N, OTHER>) -> Vector<N, General> {
+        let mut result = Vector::default();
+
+        for i in 0..N {
+            result[i] = self[i] + other[i];
+        }
+
+        result
+    }
+
+    pub fn scalar_multiply(&self, k: f32) -> Vector<N, General> {
+        let mut result = Vector::default();
+
+        for i in 0..N {
+            result[i] = self[i] * k;
+        }
+
+        result
+    }
 }
 
 impl<const N: usize> Vector<N, Probability> {
@@ -124,5 +169,29 @@ mod tests {
         let vector = Vector::from_data([0.2, 0.0, 0.8]);
         let p_vector = vector.probability_vector().expect("Probability vector");
         assert!(p_vector.regular().is_none())
+    }
+
+    #[test]
+    fn scalar_multiplication() {
+        let vector = Vector::from_data([1f32, 2f32, 3f32]);
+        let vector = vector * 3f32;
+
+        assert_eq!(vector, Vector::from_data([3f32, 6f32, 9f32]))
+    }
+
+    #[test]
+    fn vector_addition() {
+        let vector = Vector::from_data([1f32, 2f32, 3f32]);
+        let vector = vector + vector;
+
+        assert_eq!(vector, Vector::from_data([2f32, 4f32, 6f32]))
+    }
+
+    #[test]
+    fn vector_subtraction() {
+        let vector = Vector::from_data([1f32, 2f32, 3f32]);
+        let vector = vector - vector;
+
+        assert_eq!(vector, Vector::from_data([0f32, 0f32, 0f32]))
     }
 }
