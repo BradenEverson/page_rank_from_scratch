@@ -12,6 +12,8 @@ pub struct Probability;
 pub struct General;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Unit;
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ProbabilityRegular;
 
 /// A generic N sized vector
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -90,5 +92,37 @@ impl<const N: usize, TYPE: Debug> Vector<N, TYPE> {
 
     pub fn contains_zero(&self) -> bool {
         self.data.contains(&0f32)
+    }
+}
+
+impl<const N: usize> Vector<N, Probability> {
+    pub fn regular(&self) -> Option<Vector<N, ProbabilityRegular>> {
+        if self.data.iter().filter(|element| **element > 0.0).count() == self.data.len() {
+            let mut new_vec = Vector::default();
+            new_vec.data = self.data;
+
+            Some(new_vec)
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Vector;
+
+    #[test]
+    fn regular_probability_vector() {
+        let vector = Vector::from_data([0.1, 0.1, 0.8]);
+        let p_vector = vector.probability_vector().expect("Probability vector");
+        assert!(p_vector.regular().is_some())
+    }
+
+    #[test]
+    fn nonregular_probability_vector() {
+        let vector = Vector::from_data([0.2, 0.0, 0.8]);
+        let p_vector = vector.probability_vector().expect("Probability vector");
+        assert!(p_vector.regular().is_none())
     }
 }
