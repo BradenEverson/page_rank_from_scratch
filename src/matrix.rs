@@ -100,6 +100,22 @@ impl<const M: usize, const N: usize> Matrix<M, N, General> {
     }
 }
 
+impl<const M: usize> Matrix<M, M, General> {
+    pub fn identity() -> Matrix<M, M, ReducedRowEchelon> {
+        let mut mat: Matrix<M, M, ReducedRowEchelon> = Matrix::default();
+
+        for row in 0..M {
+            for col in 0..M {
+                if row == col {
+                    mat[row][col] = 1f32;
+                }
+            }
+        }
+
+        mat
+    }
+}
+
 impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
     pub fn stochastic_matrix(&self) -> Option<Matrix<M, N, Stochastic>> {
         let columns = self.column_vectors();
@@ -224,5 +240,12 @@ mod tests {
                 Vector::from_data([2f32, 4f32]),
             ])
         )
+    }
+
+    #[test]
+    pub fn identity_matrix() {
+        let identity: Matrix<2, 2, _> = Matrix::identity();
+
+        assert_eq!(identity.data, [[1f32, 0f32], [0f32, 1f32]])
     }
 }
