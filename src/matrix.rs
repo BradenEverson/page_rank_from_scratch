@@ -48,9 +48,18 @@ impl<const M: usize, const N: usize, TYPE: Debug> IndexMut<usize> for Matrix<M, 
 }
 
 impl<const M: usize, const N: usize, TYPE: Debug + Copy> std::ops::Mul<f32> for Matrix<M, N, TYPE> {
-    type Output = Self;
+    type Output = Matrix<M, N, General>;
     fn mul(self, rhs: f32) -> Self::Output {
         self.scalar_multiply(rhs)
+    }
+}
+
+impl<const M: usize, const N: usize, TYPE: Debug + Copy, OTHER: Debug + Copy>
+    std::ops::Add<Matrix<M, N, OTHER>> for Matrix<M, N, TYPE>
+{
+    type Output = Matrix<M, N, General>;
+    fn add(self, rhs: Matrix<M, N, OTHER>) -> Self::Output {
+        self.matrix_addition(&rhs)
     }
 }
 
@@ -115,7 +124,7 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
         vectors
     }
 
-    pub fn scalar_multiply(&self, k: f32) -> Self {
+    pub fn scalar_multiply(&self, k: f32) -> Matrix<M, N, General> {
         let mut mat = *self;
 
         for row in 0..M {
@@ -124,7 +133,25 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
             }
         }
 
-        mat
+        let mut result = Matrix::default();
+        result.data = mat.data;
+
+        result
+    }
+
+    pub fn matrix_addition<LEFT: Debug>(
+        &self,
+        other: &Matrix<M, N, LEFT>,
+    ) -> Matrix<M, N, General> {
+        let mut result = Matrix::default();
+
+        for row in 0..M {
+            for col in 0..N {
+                result[row][col] = self[row][col] + other[row][col];
+            }
+        }
+
+        result
     }
 }
 
@@ -163,5 +190,39 @@ mod tests {
 
         assert!(matrix.stochastic_matrix().is_some());
         assert!(non_stochastic_matrix.stochastic_matrix().is_none())
+    }
+
+    #[test]
+    pub fn scalar_multiplication() {
+        let matrix = Matrix::from_vectors([
+            Vector::from_data([1f32, 2f32]),
+            Vector::from_data([1f32, 2f32]),
+        ]);
+        let matrix = matrix * 2f32;
+
+        assert_eq!(
+            matrix,
+            Matrix::from_vectors([
+                Vector::from_data([2f32, 4f32]),
+                Vector::from_data([2f32, 4f32]),
+            ])
+        )
+    }
+
+    #[test]
+    pub fn matrix_addition() {
+        let matrix = Matrix::from_vectors([
+            Vector::from_data([1f32, 2f32]),
+            Vector::from_data([1f32, 2f32]),
+        ]);
+        let matrix = matrix + matrix;
+
+        assert_eq!(
+            matrix,
+            Matrix::from_vectors([
+                Vector::from_data([2f32, 4f32]),
+                Vector::from_data([2f32, 4f32]),
+            ])
+        )
     }
 }
