@@ -17,14 +17,19 @@ new_key_type! {
 /// A graph holding connected nodes. Each node has a chance to move to another node or stay where
 /// it is, which can be represented as a stochastic matrix
 #[derive(Default)]
-pub struct ConnectionGraph {
-    pub nodes: SlotMap<GraphKey, Node>,
+pub struct ConnectionGraph<ITEM: Default> {
+    pub nodes: SlotMap<GraphKey, Node<ITEM>>,
 }
 
-impl ConnectionGraph {
+impl<ITEM: Default> ConnectionGraph<ITEM> {
     /// Registers a new empty node to the graph
     pub fn register(&mut self) -> GraphKey {
         self.nodes.insert(Node::default())
+    }
+
+    /// Assigns a value at a certain node
+    pub fn set_val(&mut self, node: GraphKey, val: ITEM) {
+        self.nodes[node].item = val
     }
 
     /// Connects a node to another node with a given probability that the node will travel
@@ -32,6 +37,7 @@ impl ConnectionGraph {
         self.nodes[from].connections.push((to, prob));
     }
 
+    /// Creates a stochastic matrix based on connection probabilities
     pub fn matrix_representation<const NODES: usize>(
         &self,
     ) -> Option<Matrix<NODES, NODES, Stochastic>> {
@@ -56,15 +62,25 @@ impl ConnectionGraph {
         Matrix::from_vectors(res).stochastic_matrix()
     }
 
-    pub fn get_rank<const NODES: usize>(&self) -> Option<Vector<NODES, Probability>> {
+    /// Gets the steady state solution to the stochastic representation of this graph
+    pub fn get_rank_vector<const NODES: usize>(&self) -> Option<Vector<NODES, Probability>> {
         let matrix = self.matrix_representation::<NODES>()?;
         matrix.steady_state_solution()
+    }
+
+    /// Returns a list from highest to lowest "rank" of nodes in the graph
+    pub fn get_rankings<const NODES: usize>(&self) -> Option<Vec<GraphKey>> {
+        let mut res = vec![];
+        let rank_vector = self.get_rank_vector::<NODES>()?;
+
+        Some(res)
     }
 }
 
 /// A node in the graph containing probabilities that it moves to another node
 #[derive(Default)]
-pub struct Node {
+pub struct Node<ITEM> {
+    pub item: ITEM,
     pub connections: Vec<(GraphKey, f32)>,
 }
 
@@ -76,7 +92,7 @@ mod tests {
 
     #[test]
     fn graph_generates_proper_stochastic() {
-        let mut graph = ConnectionGraph::default();
+        let mut graph: ConnectionGraph<()> = ConnectionGraph::default();
 
         let a = graph.register();
         let b = graph.register();
@@ -109,7 +125,7 @@ mod tests {
 
     #[test]
     fn get_rank_from_graph() {
-        let mut graph = ConnectionGraph::default();
+        let mut graph: ConnectionGraph<()> = ConnectionGraph::default();
 
         let a = graph.register();
         let b = graph.register();
@@ -126,7 +142,7 @@ mod tests {
         graph.connect(c, b, 0.65);
 
         let rank = graph
-            .get_rank::<3>()
+            .get_rank_vector::<3>()
             .expect("Create stochastic matrix from graph");
 
         let expected = [0.12017166, 0.7081545, 0.1716738];
