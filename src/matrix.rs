@@ -198,11 +198,35 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
         Matrix::from_rows(rows)
     }
 
-    pub fn null_space(&self) -> Vec<Vector<M>> {
-        // Include the trivial solution in the null space
-        let null_space = vec![Vector::zero_vector()];
-
+    pub fn null_space(&self) -> Vec<Vector<N>> {
         let reduced = self.reduced_row_echelon();
+        let mut null_space = Vec::new();
+
+        let mut pivot_columns = vec![None; M];
+        let mut free_variables = vec![true; N];
+
+        for (row_idx, row) in reduced.row_vectors().iter().enumerate() {
+            if let Some(pivot_idx) = row.first_non_zero_term() {
+                pivot_columns[row_idx] = Some(pivot_idx);
+                free_variables[pivot_idx] = false;
+            }
+        }
+
+        for (free_idx, &is_free) in free_variables.iter().enumerate() {
+            if is_free {
+                let mut null_vector = Vector::zero_vector();
+
+                null_vector[free_idx] = 1.0;
+
+                for (row_idx, pivot_opt) in pivot_columns.iter().enumerate() {
+                    if let Some(pivot_idx) = pivot_opt {
+                        null_vector[*pivot_idx] = -reduced[row_idx][free_idx];
+                    }
+                }
+
+                null_space.push(null_vector);
+            }
+        }
 
         null_space
     }
@@ -349,6 +373,18 @@ mod tests {
 
         let reduced = input.reduced_row_echelon();
         assert_eq!(reduced.data, expected.data)
+    }
+
+    #[test]
+    pub fn null_space() {
+        let input = Matrix::from_vectors([
+            Vector::from_data([1f32, 2f32]),
+            Vector::from_data([5f32, 11f32]),
+            Vector::from_data([1f32, 5f32]),
+        ]);
+
+        let null_space = input.null_space();
+        assert_eq!(null_space, &[Vector::from_data([14f32, -3f32, 1f32])])
     }
 
     #[test]
