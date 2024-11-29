@@ -138,6 +138,10 @@ impl<const N: usize, TYPE: Debug> Vector<N, TYPE> {
 
         result
     }
+
+    pub fn first_non_zero_term(&self) -> Option<usize> {
+        self.data.iter().position(|elem| *elem != 0f32)
+    }
 }
 
 impl<const N: usize> Vector<N, Probability> {

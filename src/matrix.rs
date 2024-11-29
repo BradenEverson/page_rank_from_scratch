@@ -126,6 +126,18 @@ impl<const M: usize> Matrix<M, M, General> {
 }
 
 impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
+    pub fn from_rows(vectors: [Vector<N>; M]) -> Matrix<M, N, TYPE> {
+        let mut result = Matrix::default();
+
+        for row in 0..M {
+            for col in 0..N {
+                result[row][col] = vectors[row][col]
+            }
+        }
+
+        result
+    }
+
     pub fn stochastic_matrix(&self) -> Option<Matrix<M, N, Stochastic>> {
         let columns = self.column_vectors();
         let mut stochastic: Matrix<M, N, Stochastic> = Matrix::default();
@@ -153,9 +165,8 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
         let mut vectors = [Vector::zero_vector(); M];
 
         for y in 0..M {
-            let vector = &mut vectors[y];
             for x in 0..N {
-                vector[x] = self[x][y];
+                vectors[y][x] = self[y][x];
             }
         }
 
@@ -163,12 +174,28 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
     }
 
     pub fn reduced_row_echelon(&self) -> Matrix<M, N, ReducedRowEchelon> {
-        let rows = self.row_vectors();
+        let mut rows = self.row_vectors();
         // For each row, get the first non-zero position and scale vector so that is's 1. For all
         // other vectors, if there is a non-zero term in that position, subtract this row from that
         // row scaled by whatever that value is. Then we can do some clean up and move vectors up
         // based on precedence of leading 1s
-        todo!()
+
+        for i in 0..M {
+            let row = rows[i];
+            if let Some(idx) = row.first_non_zero_term() {
+                let scalar_reduction = 1f32 / row[idx];
+                rows[i] = row * scalar_reduction;
+
+                for k in 0..M {
+                    let val = rows[k][idx];
+                    if k != i && val != 0f32 {
+                        rows[k] = rows[k] - (rows[i] * val)
+                    }
+                }
+            }
+        }
+
+        Matrix::from_rows(rows)
     }
 
     pub fn scalar_multiply(&self, k: f32) -> Matrix<M, N, General> {
@@ -295,5 +322,31 @@ mod tests {
         let identity: Matrix<2, 2, _> = Matrix::identity();
 
         assert_eq!(identity.data, [[1f32, 0f32], [0f32, 1f32]])
+    }
+
+    #[test]
+    pub fn reduce_row_echelon_form() {
+        let input = Matrix::from_vectors([
+            Vector::from_data([1f32, 2f32]),
+            Vector::from_data([5f32, 11f32]),
+            Vector::from_data([1f32, 5f32]),
+        ]);
+
+        let expected = Matrix::from_vectors([
+            Vector::from_data([1f32, 0f32]),
+            Vector::from_data([0f32, 1f32]),
+            Vector::from_data([-14f32, 3f32]),
+        ]);
+
+        let reduced = input.reduced_row_echelon();
+        assert_eq!(reduced.data, expected.data)
+    }
+
+    #[test]
+    pub fn identity_matrix_is_reduced_row_echelon() {
+        let reduced: Matrix<3, 3, _> = Matrix::identity().reduced_row_echelon();
+        let identity: Matrix<3, 3, _> = Matrix::identity();
+
+        assert_eq!(reduced.data, identity.data)
     }
 }
