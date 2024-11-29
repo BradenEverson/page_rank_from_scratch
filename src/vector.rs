@@ -18,7 +18,7 @@ pub struct ProbabilityRegular;
 /// A generic N sized vector
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vector<const N: usize, TYPE: Debug = General> {
-    data: [f32; N],
+    pub(crate) data: [f32; N],
     phantom_type: PhantomData<TYPE>,
 }
 
