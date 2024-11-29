@@ -388,6 +388,14 @@ mod tests {
     }
 
     #[test]
+    pub fn null_space_of_identity_is_empty() {
+        let input: Matrix<3, 3, _> = Matrix::identity();
+        let null_space = input.null_space();
+
+        assert!(null_space.is_empty())
+    }
+
+    #[test]
     pub fn identity_matrix_is_reduced_row_echelon() {
         let reduced: Matrix<3, 3, _> = Matrix::identity().reduced_row_echelon();
         let identity: Matrix<3, 3, _> = Matrix::identity();
