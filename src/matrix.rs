@@ -6,7 +6,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use crate::vector::Vector;
+use crate::vector::{Probability, Vector};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct General;
@@ -110,8 +110,8 @@ impl<const M: usize, const N: usize> Matrix<M, N, General> {
 }
 
 impl<const M: usize> Matrix<M, M, General> {
-    pub fn identity() -> Matrix<M, M, ReducedRowEchelon> {
-        let mut mat: Matrix<M, M, ReducedRowEchelon> = Matrix::default();
+    pub fn identity() -> Matrix<M, M> {
+        let mut mat: Matrix<M, M> = Matrix::default();
 
         for row in 0..M {
             for col in 0..M {
@@ -259,6 +259,27 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
         }
 
         result
+    }
+}
+
+impl<const M: usize> Matrix<M, M, Stochastic> {
+    pub fn steady_state_solution(&self) -> Option<Vector<M, Probability>> {
+        let identity_matrix: Matrix<M, M> = Matrix::identity();
+        let self_minus_e1 = *self - identity_matrix;
+
+        // Select first vector from the null space
+        let steady_state = self_minus_e1.null_space();
+        if steady_state.len() > 0 {
+            let selected_steady_state = steady_state[0];
+            let scale = 1f32 / selected_steady_state.sum();
+
+            let steady_state_solution = selected_steady_state * scale;
+            let steady_state_solution = steady_state_solution.probability_vector()?;
+
+            Some(steady_state_solution)
+        } else {
+            None
+        }
     }
 }
 

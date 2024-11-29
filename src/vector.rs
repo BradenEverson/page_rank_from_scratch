@@ -94,6 +94,10 @@ impl<const N: usize, TYPE: Debug> Vector<N, TYPE> {
         self.data.iter().map(|val| val.powi(2)).sum::<f32>().sqrt()
     }
 
+    pub fn sum(&self) -> f32 {
+        self.data.iter().sum()
+    }
+
     pub fn unit_vector(&self) -> Vector<N, Unit> {
         let mut unit_vec = Vector::default();
         let magnitude = self.magnitude();
