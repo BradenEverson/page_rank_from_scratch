@@ -110,7 +110,7 @@ impl<const N: usize, TYPE: Debug> Vector<N, TYPE> {
     }
 
     pub fn probability_vector(&self) -> Option<Vector<N, Probability>> {
-        if self.data.iter().sum::<f32>() == 1.0 {
+        if (self.data.iter().sum::<f32>() - 1.0).abs() <= 0.01 {
             let mut new_vec = Vector::default();
             new_vec.data = self.data;
             Some(new_vec)
@@ -144,7 +144,7 @@ impl<const N: usize, TYPE: Debug> Vector<N, TYPE> {
     }
 
     pub fn first_non_zero_term(&self) -> Option<usize> {
-        self.data.iter().position(|elem| *elem != 0f32)
+        self.data.iter().position(|elem| elem.abs() > 1e-6)
     }
 }
 

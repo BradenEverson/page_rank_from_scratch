@@ -155,7 +155,7 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
         for x in 0..N {
             let vector = &mut vectors[x];
             for y in 0..M {
-                vector[y] = self[x][y];
+                vector[y] = self[y][x];
             }
         }
         vectors
@@ -300,8 +300,8 @@ mod tests {
         assert_eq!(
             vec_space,
             [
-                Vector::from_data([1f32, 1f32]),
-                Vector::from_data([2f32, 2f32])
+                Vector::from_data([1f32, 2f32]),
+                Vector::from_data([1f32, 2f32])
             ]
         )
     }
@@ -309,7 +309,7 @@ mod tests {
     #[test]
     pub fn stochastic_matrix() {
         let matrix =
-            Matrix::from_vectors([Vector::from_data([0.5, 0.2]), Vector::from_data([0.5, 0.8])]);
+            Matrix::from_vectors([Vector::from_data([0.5, 0.5]), Vector::from_data([0.2, 0.8])]);
 
         let non_stochastic_matrix = Matrix::from_vectors([
             Vector::from_data([1f32, 2f32]),
@@ -422,5 +422,19 @@ mod tests {
         let identity: Matrix<3, 3, _> = Matrix::identity();
 
         assert_eq!(reduced.data, identity.data)
+    }
+
+    #[test]
+    pub fn steady_state_solutions_found() {
+        let input =
+            Matrix::from_vectors([Vector::from_data([0.7, 0.3]), Vector::from_data([0.2, 0.8])]);
+        let steady_state = input
+            .stochastic_matrix()
+            .expect("Stochastic matrix")
+            .steady_state_solution()
+            .expect("Find steady state solution");
+
+        assert!((steady_state[0] - 0.4).abs() < 1e-6);
+        assert!((steady_state[1] - 0.6).abs() < 1e-6);
     }
 }
