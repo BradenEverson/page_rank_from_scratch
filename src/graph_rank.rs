@@ -73,7 +73,13 @@ impl<ITEM: Default> ConnectionGraph<ITEM> {
         let mut res = vec![];
         let rank_vector = self.get_rank_vector::<NODES>()?;
 
-        Some(res)
+        for (idx, (key, _)) in self.nodes.iter().enumerate() {
+            res.push((key, rank_vector[idx]));
+        }
+
+        res.sort_by(|(_, prev_index), (_, index)| index.total_cmp(prev_index));
+
+        Some(res.iter().map(|(key, _)| *key).collect())
     }
 }
 
@@ -147,5 +153,30 @@ mod tests {
 
         let expected = [0.12017166, 0.7081545, 0.1716738];
         assert_eq!(rank.data, expected)
+    }
+
+    #[test]
+    fn get_total_rankings() {
+        let mut graph: ConnectionGraph<()> = ConnectionGraph::default();
+
+        let a = graph.register();
+        let b = graph.register();
+        let c = graph.register();
+
+        graph.connect(a, a, 0.5);
+        graph.connect(a, b, 0.25);
+        graph.connect(a, c, 0.25);
+
+        graph.connect(b, b, 0.8);
+        graph.connect(b, c, 0.2);
+
+        graph.connect(c, a, 0.35);
+        graph.connect(c, b, 0.65);
+
+        let rankings = graph
+            .get_rankings::<3>()
+            .expect("Create stochastic matrix from graph");
+
+        assert_eq!(rankings, &[b, c, a])
     }
 }
