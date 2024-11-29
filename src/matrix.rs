@@ -198,6 +198,15 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
         Matrix::from_rows(rows)
     }
 
+    pub fn null_space(&self) -> Vec<Vector<M>> {
+        // Include the trivial solution in the null space
+        let null_space = vec![Vector::zero_vector()];
+
+        let reduced = self.reduced_row_echelon();
+
+        null_space
+    }
+
     pub fn scalar_multiply(&self, k: f32) -> Matrix<M, N, General> {
         let mut mat = *self;
 
