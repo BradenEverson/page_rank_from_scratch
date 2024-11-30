@@ -35,11 +35,8 @@ impl WebCrawler {
     }
 
     pub fn save<P: Into<PathBuf>>(&mut self, file: P) -> Option<()> {
-        self.site_queue.clear();
-        self.visited.clear();
-
         let mut file = File::create_new(file.into()).ok()?;
-        file.write_all(serde_json::to_string(&self).ok()?.as_bytes())
+        file.write_all(serde_json::to_string(&self.site_pool).ok()?.as_bytes())
             .ok()?;
 
         Some(())
@@ -54,8 +51,9 @@ impl WebCrawler {
         }
     }
 
-    pub fn urls_within_site(text: &str) -> Option<Vec<String>> {
+    pub fn urls_and_title_within_site(text: &str) -> Option<(String, Vec<String>)> {
         let mut hrefs = vec![];
+        let mut name = String::new();
 
         let mut remaining = text.chars().rev().collect::<String>();
         while !remaining.is_empty() {
@@ -77,12 +75,28 @@ impl WebCrawler {
                 }
 
                 hrefs.push(url);
+            } else if remaining.ends_with(">eltit<") {
+                remaining.pop();
+                remaining.pop();
+                remaining.pop();
+                remaining.pop();
+                remaining.pop();
+                remaining.pop();
+                remaining.pop();
+
+                while let Some(character) = remaining.pop() {
+                    if remaining.ends_with("/<") {
+                        break;
+                    }
+
+                    name.push(character);
+                }
             } else {
                 remaining.pop();
             }
         }
 
-        Some(hrefs)
+        Some((name.trim().to_string(), hrefs))
     }
 
     pub async fn parse_site(&mut self, url: SiteKey) -> Option<()> {
@@ -92,8 +106,7 @@ impl WebCrawler {
 
         let html = response.text().await.ok()?;
 
-        // TODO: Parse site, store title and all outgoing connections
-        let hrefs = WebCrawler::urls_within_site(&html)?;
+        let (title, hrefs) = WebCrawler::urls_and_title_within_site(&html)?;
 
         let hrefs: Vec<_> = hrefs
             .into_iter()
@@ -116,6 +129,7 @@ impl WebCrawler {
 
         self.site_queue.extend(hrefs.iter());
         self.site_pool[url].connections.extend(hrefs);
+        self.site_pool[url].title = title;
 
         Some(())
     }
