@@ -59,7 +59,7 @@ impl WebCrawler {
         }
     }
 
-    pub fn urls_and_title_within_site(text: &str) -> Option<(String, Vec<String>)> {
+    pub fn urls_and_title_within_site(text: &str, root_url: &str) -> Option<(String, Vec<String>)> {
         let mut hrefs = vec![];
         let mut name = String::new();
 
@@ -80,6 +80,10 @@ impl WebCrawler {
                     }
 
                     url.push(character);
+                }
+
+                if !url.starts_with("http") {
+                    url = format!("{root_url}{url}");
                 }
 
                 hrefs.push(url);
@@ -114,7 +118,26 @@ impl WebCrawler {
 
         let html = response.text().await.ok()?;
 
-        let (title, hrefs) = WebCrawler::urls_and_title_within_site(&html)?;
+        let mut root_url = String::new();
+        let mut remaining = site.url.chars().rev().collect::<String>();
+
+        while !remaining.is_empty() {
+            if remaining.ends_with("//") {
+                remaining.pop();
+                remaining.pop();
+
+                root_url.push('/');
+                root_url.push('/');
+            }
+            if let Some(character) = remaining.pop() {
+                if character == '/' {
+                    break;
+                }
+                root_url.push(character);
+            }
+        }
+
+        let (title, hrefs) = WebCrawler::urls_and_title_within_site(&html, &root_url)?;
 
         let hrefs: Vec<_> = hrefs
             .into_iter()
