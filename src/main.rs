@@ -1,18 +1,19 @@
-use page_rank_from_scratch::crawler::WebCrawler;
-
-/// How many sites to scrape for our fake internet
-pub const SITES_TO_SCRAPE: usize = 10_000;
+use page_rank_from_scratch::{crawler::WebCrawler, page_rank::PageRanker};
 
 #[tokio::main]
 async fn main() {
-    let mut crawler = WebCrawler::default();
-    crawler.enqueue("https://en.wikipedia.org/wiki/Main_Page");
+    let page_registry =
+        WebCrawler::load("1000sites.json").expect("Failed to load page registry from file");
+    let pageranker = PageRanker::from_registry(page_registry);
 
-    for i in 0..SITES_TO_SCRAPE {
-        if crawler.crawl().await.is_none() {
-            println!("Oops ran out of entries on entry {i}");
+    let search_term = "wiki";
+
+    if let Some(rankings) = pageranker.search(search_term) {
+        println!("Top results for \"{search_term}\":");
+        for site in rankings.iter() {
+            println!("\n{}\n\t{}\n", site.title, site.url)
         }
+    } else {
+        println!("Unable to generate top results for query, it's likely that our database isn't yet large enough :(");
     }
-
-    crawler.save("10000sites.json").expect("Failed to save");
 }

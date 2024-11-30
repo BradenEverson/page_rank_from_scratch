@@ -3,7 +3,7 @@
 use std::{
     collections::{HashSet, VecDeque},
     fs::File,
-    io::Write,
+    io::{Read, Write},
     path::PathBuf,
 };
 
@@ -40,6 +40,14 @@ impl WebCrawler {
             .ok()?;
 
         Some(())
+    }
+
+    pub fn load<P: Into<PathBuf>>(file: P) -> Option<SlotMap<SiteKey, SiteLog>> {
+        let mut file = File::open(file.into()).ok()?;
+        let mut buf = String::new();
+
+        file.read_to_string(&mut buf).ok()?;
+        serde_json::from_str(&buf).ok()
     }
 
     /// Crawls through the site queue, adding sites to the site pool and
@@ -139,7 +147,7 @@ impl WebCrawler {
 }
 
 /// Tracked information about a site
-#[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SiteLog {
     pub url: String,
     pub title: String,

@@ -260,6 +260,13 @@ impl<const M: usize, const N: usize, TYPE: Debug + Copy> Matrix<M, N, TYPE> {
 
         result
     }
+
+    pub fn identity_filled(num: f32) -> Matrix<M, N, TYPE> {
+        Matrix {
+            data: [[num; N]; M],
+            phantom_type: PhantomData,
+        }
+    }
 }
 
 impl<const M: usize> Matrix<M, M, Stochastic> {

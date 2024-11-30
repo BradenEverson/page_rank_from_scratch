@@ -6,13 +6,19 @@ use std::collections::HashMap;
 use slotmap::{new_key_type, SlotMap};
 
 use crate::{
-    matrix::{Matrix, Stochastic},
+    matrix::Matrix,
     vector::{Probability, Vector},
 };
 
 new_key_type! {
     pub struct GraphKey;
 }
+
+/// Probability the user will choose a random link *from* the current site
+pub const RANDOM_WALK_CHANCE: f32 = 0.85;
+
+/// Probability the user may just click a random link instead
+pub const RANDOM_CLICK_AWAY_CHANCE: f32 = 0.15;
 
 /// A graph holding connected nodes. Each node has a chance to move to another node or stay where
 /// it is, which can be represented as a stochastic matrix
@@ -38,9 +44,7 @@ impl<ITEM: Default> ConnectionGraph<ITEM> {
     }
 
     /// Creates a stochastic matrix based on connection probabilities
-    pub fn matrix_representation<const NODES: usize>(
-        &self,
-    ) -> Option<Matrix<NODES, NODES, Stochastic>> {
+    pub fn matrix_representation<const NODES: usize>(&self) -> Matrix<NODES, NODES> {
         // Register all nodes to an ID
         let mut res = [Vector::default(); NODES];
         let mut indexes = HashMap::new();
@@ -59,12 +63,16 @@ impl<ITEM: Default> ConnectionGraph<ITEM> {
             }
         }
 
-        Matrix::from_vectors(res).stochastic_matrix()
+        Matrix::from_vectors(res)
     }
 
     /// Gets the steady state solution to the stochastic representation of this graph
     pub fn get_rank_vector<const NODES: usize>(&self) -> Option<Vector<NODES, Probability>> {
-        let matrix = self.matrix_representation::<NODES>()?;
+        let matrix = (self.matrix_representation::<NODES>() * RANDOM_WALK_CHANCE
+            + (Matrix::<NODES, NODES>::identity_filled(1f32 / NODES as f32)
+                * RANDOM_CLICK_AWAY_CHANCE))
+            .stochastic_matrix()?;
+
         matrix.steady_state_solution()
     }
 
@@ -116,7 +124,8 @@ mod tests {
 
         let stochastic_representation = graph
             .matrix_representation::<3>()
-            .expect("Create stochastic matrix from graph");
+            .stochastic_matrix()
+            .expect("Stochastic matrix");
 
         let expected = Matrix::from_vectors([
             Vector::from_data([0.5, 0.25, 0.25]),
@@ -151,7 +160,7 @@ mod tests {
             .get_rank_vector::<3>()
             .expect("Create stochastic matrix from graph");
 
-        let expected = [0.12017166, 0.7081545, 0.1716738];
+        let expected = [0.18777283, 0.6173722, 0.19485497];
         assert_eq!(rank.data, expected)
     }
 
