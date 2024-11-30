@@ -1,7 +1,7 @@
 //! Web crawler for collecting site information and sites linked to from this site
 
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashSet, VecDeque},
     fs::File,
     io::Write,
     path::PathBuf,
@@ -17,18 +17,26 @@ new_key_type! {pub struct SiteKey;}
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct WebCrawler {
     pub site_pool: SlotMap<SiteKey, SiteLog>,
-    pub url_to_keys: HashMap<String, SiteKey>,
-    pub site_queue: VecDeque<String>,
+    pub site_queue: VecDeque<SiteKey>,
+    pub visited: HashSet<String>,
 }
 
 impl WebCrawler {
     /// Adds a URL to the crawling queue
-    pub fn enqueue<S: Into<String>>(&mut self, input: S) {
-        self.site_queue.push_back(input.into());
+    pub fn enqueue<S: Into<String>>(&mut self, input: S) -> SiteKey {
+        let site_log = SiteLog {
+            url: input.into(),
+            ..Default::default()
+        };
+        let inserted = self.site_pool.insert(site_log);
+        self.site_queue.push_back(inserted);
+
+        inserted
     }
 
     pub fn save<P: Into<PathBuf>>(&mut self, file: P) -> Option<()> {
         self.site_queue.clear();
+        self.visited.clear();
 
         let mut file = File::create_new(file.into()).ok()?;
         file.write_all(serde_json::to_string(&self).ok()?.as_bytes())
@@ -77,27 +85,36 @@ impl WebCrawler {
         Some(hrefs)
     }
 
-    pub async fn parse_site<S: AsRef<str>>(&mut self, url: S) -> Option<()> {
-        let response = reqwest::get(url.as_ref()).await.ok()?;
-        let url_str = url.as_ref().to_string();
+    pub async fn parse_site(&mut self, url: SiteKey) -> Option<()> {
+        let site = &mut self.site_pool[url];
+        let response = reqwest::get(&site.url).await.ok()?;
+        self.visited.insert(site.url.clone());
+
         let html = response.text().await.ok()?;
-
-        let site_key = if !self.url_to_keys.contains_key(url.as_ref()) {
-            let key = self.site_pool.insert(SiteLog::default());
-            self.url_to_keys.insert(url_str, key);
-            key
-        } else {
-            self.url_to_keys[url.as_ref()]
-        };
-
-        let site_entry = &mut self.site_pool[site_key];
-        site_entry.url = url.as_ref().to_string();
 
         // TODO: Parse site, store title and all outgoing connections
         let hrefs = WebCrawler::urls_within_site(&html)?;
 
-        self.site_queue
-            .extend(hrefs.into_iter().filter(|href| href.starts_with("http")));
+        let hrefs: Vec<_> = hrefs
+            .into_iter()
+            .filter_map(|href| {
+                if href.starts_with("http")
+                    && !self.visited.contains(&href)
+                    && self
+                        .site_pool
+                        .iter()
+                        .filter(|(_, log)| log.url == href)
+                        .count()
+                        == 0
+                {
+                    Some(self.enqueue(href))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        self.site_queue.extend(hrefs);
 
         Some(())
     }
