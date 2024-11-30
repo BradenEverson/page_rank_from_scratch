@@ -114,7 +114,8 @@ impl WebCrawler {
             })
             .collect();
 
-        self.site_queue.extend(hrefs);
+        self.site_queue.extend(hrefs.iter());
+        self.site_pool[url].connections.extend(hrefs);
 
         Some(())
     }
