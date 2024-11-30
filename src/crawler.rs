@@ -129,6 +129,9 @@ impl WebCrawler {
 
         self.site_queue.extend(hrefs.iter());
         self.site_pool[url].connections.extend(hrefs);
+
+        // Add self connection
+        self.site_pool[url].connections.push(url);
         self.site_pool[url].title = title;
 
         Some(())
