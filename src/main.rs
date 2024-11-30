@@ -1,7 +1,7 @@
 use page_rank_from_scratch::crawler::WebCrawler;
 
 /// How many sites to scrape for our fake internet
-pub const SITES_TO_SCRAPE: usize = 100_000;
+pub const SITES_TO_SCRAPE: usize = 1_000;
 
 #[tokio::main]
 async fn main() {
@@ -13,4 +13,6 @@ async fn main() {
             panic!("Oops ran out of entries");
         }
     }
+
+    crawler.save("testout.sites");
 }

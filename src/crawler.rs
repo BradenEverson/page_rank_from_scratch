@@ -1,14 +1,20 @@
 //! Web crawler for collecting site information and sites linked to from this site
 
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    fs::File,
+    io::Write,
+    path::PathBuf,
+};
 
+use serde::{Deserialize, Serialize};
 use slotmap::{new_key_type, SlotMap};
 
 new_key_type! {pub struct SiteKey;}
 
 /// A webcrawling agent that parses a site's metadata and adds all links found within to a queue to
 /// do the same to
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct WebCrawler {
     pub site_pool: SlotMap<SiteKey, SiteLog>,
     pub url_to_keys: HashMap<String, SiteKey>,
@@ -20,6 +26,17 @@ impl WebCrawler {
     pub fn enqueue<S: Into<String>>(&mut self, input: S) {
         self.site_queue.push_back(input.into());
     }
+
+    pub fn save<P: Into<PathBuf>>(&mut self, file: P) -> Option<()> {
+        self.site_queue.clear();
+
+        let mut file = File::create_new(file.into()).ok()?;
+        file.write_all(serde_json::to_string(&self).ok()?.as_bytes())
+            .ok()?;
+
+        Some(())
+    }
+
     /// Crawls through the site queue, adding sites to the site pool and
     pub async fn crawl(&mut self) -> Option<()> {
         if let Some(url) = self.site_queue.pop_front() {
@@ -79,16 +96,15 @@ impl WebCrawler {
         // TODO: Parse site, store title and all outgoing connections
         let hrefs = WebCrawler::urls_within_site(&html)?;
 
-        for href in hrefs {
-            todo!("Parse href by creating new empty SiteLog and enqueing it. Add key created from slotmap to the current SiteEntry's connections");
-        }
+        self.site_queue
+            .extend(hrefs.into_iter().filter(|href| href.starts_with("http")));
 
         Some(())
     }
 }
 
 /// Tracked information about a site
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SiteLog {
     pub url: String,
     pub title: String,
