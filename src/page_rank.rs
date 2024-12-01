@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Show the top {this number} results when searching for a topic
-pub const RESULTS_TO_SHOW: usize = 25;
+pub const RESULTS_TO_SHOW: usize = 250;
 
 /// Struct responsible for creating stochastic matrices that represent sites that appear
 pub struct PageRanker {
@@ -27,13 +27,19 @@ impl PageRanker {
 
     pub fn search(&self, term: &str) -> Option<Vec<&SiteLog>> {
         let mut site_key_to_graph_keys = HashMap::new();
-        let mut graph: ConnectionGraph<SiteKey> = ConnectionGraph::default();
+        let mut graph: ConnectionGraph<Option<SiteKey>> = ConnectionGraph::default();
 
         let within_term = self.reduce_registry_by_term(term);
 
         for site_key in &within_term {
             site_key_to_graph_keys.insert(site_key, graph.register());
-            graph.set_val(site_key_to_graph_keys[&site_key], *site_key);
+            graph.set_val(site_key_to_graph_keys[&site_key], Some(*site_key));
+        }
+
+        for _ in 0..(RESULTS_TO_SHOW - within_term.len()) {
+            let empty = graph.register();
+            graph.set_val(empty, None);
+            graph.connect(empty, empty, 1.0);
         }
 
         for (site_key, graph_key) in &site_key_to_graph_keys {
@@ -57,7 +63,8 @@ impl PageRanker {
 
         let top_sites: Vec<_> = rankings
             .into_iter()
-            .map(|key| &self.sites[graph.nodes[key].item])
+            .filter_map(|key| graph.nodes[key].item)
+            .map(|key| &self.sites[key])
             .collect();
 
         Some(top_sites)
@@ -65,12 +72,18 @@ impl PageRanker {
 
     /// Creates a reduced slotmap based on titles that match a search term
     fn reduce_registry_by_term(&self, term: &str) -> Vec<SiteKey> {
-        self.sites
+        let valid = self
+            .sites
             .clone()
             .into_iter()
             .filter(|(_, site)| site.title.to_lowercase().contains(&term.to_lowercase()))
             .map(|(key, _)| key)
-            .collect::<Vec<_>>()[..RESULTS_TO_SHOW]
-            .to_vec()
+            .collect::<Vec<_>>();
+
+        if valid.len() <= RESULTS_TO_SHOW {
+            valid
+        } else {
+            valid[..RESULTS_TO_SHOW].to_vec()
+        }
     }
 }

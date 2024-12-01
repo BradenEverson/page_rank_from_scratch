@@ -34,6 +34,7 @@ impl WebCrawler {
         inserted
     }
 
+    /// Saves the site_pool slotmap as a JSON file
     pub fn save<P: Into<PathBuf>>(&mut self, file: P) -> Option<()> {
         let mut file = File::create_new(file.into()).ok()?;
         file.write_all(serde_json::to_string(&self.site_pool).ok()?.as_bytes())
@@ -42,6 +43,7 @@ impl WebCrawler {
         Some(())
     }
 
+    /// Loads a site slotmap from a JSON file
     pub fn load<P: Into<PathBuf>>(file: P) -> Option<SlotMap<SiteKey, SiteLog>> {
         let mut file = File::open(file.into()).ok()?;
         let mut buf = String::new();
