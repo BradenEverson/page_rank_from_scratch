@@ -15,6 +15,11 @@ use ratatui::{
 use std::sync::{Arc, Mutex};
 use std::{io, rc::Rc};
 
+pub enum Mode {
+    Normal,
+    Insert,
+}
+
 fn main() -> io::Result<()> {
     let page_registry = WebCrawler::load("100_sites_with_roots.json")
         .expect("Failed to load page registry from file");
@@ -39,6 +44,7 @@ fn main() -> io::Result<()> {
     let mut input = String::new();
     let mut search_results: Vec<(String, String)> = vec![];
     let mut selected = 0;
+    let mut mode = Mode::Normal;
 
     loop {
         terminal.draw(|frame| {
@@ -105,38 +111,62 @@ fn main() -> io::Result<()> {
 
         // Handle events
         if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char(c) => input.push(c),
-                KeyCode::Backspace => {
-                    input.pop();
-                }
-                KeyCode::Enter => {
-                    if let Some(rankings) = pageranker.lock().unwrap().search(input.trim()) {
-                        search_results = rankings
-                            .iter()
-                            .map(|site| (site.title.clone(), site.url.clone()))
-                            .collect();
-                        selected = 0;
-                    } else {
-                        search_results = vec![(
-                            "No results found".to_string(),
-                            "Try a different query.".to_string(),
-                        )];
+            match mode {
+                Mode::Insert => match key.code {
+                    KeyCode::Char(c) => input.push(c),
+                    KeyCode::Backspace => {
+                        input.pop();
                     }
-                    input.clear();
-                }
-                KeyCode::Up => {
-                    if selected > 0 {
-                        selected -= 1;
+                    KeyCode::Enter => {
+                        if let Some(rankings) = pageranker.lock().unwrap().search(input.trim()) {
+                            search_results = rankings
+                                .iter()
+                                .map(|site| (site.title.clone(), site.url.clone()))
+                                .collect();
+                            selected = 0;
+                        } else {
+                            search_results = vec![(
+                                "No results found".to_string(),
+                                "Try a different query.".to_string(),
+                            )];
+                        }
+                        input.clear();
                     }
-                }
-                KeyCode::Down => {
-                    if selected < search_results.len() {
-                        selected += 1;
+                    KeyCode::Up => {
+                        if selected > 0 {
+                            selected -= 1;
+                        }
                     }
-                }
-                KeyCode::Esc => break,
-                _ => {}
+                    KeyCode::Down => {
+                        if selected < search_results.len() {
+                            selected += 1;
+                        }
+                    }
+                    KeyCode::Esc => mode = Mode::Normal,
+                    _ => {}
+                },
+                Mode::Normal => match key.code {
+                    KeyCode::Char(c) => match c {
+                        'q' => break,
+                        'j' => {
+                            if selected < search_results.len() {
+                                selected += 1;
+                            }
+                        }
+                        'k' => {
+                            if selected > 0 {
+                                selected -= 1;
+                            }
+                        }
+                        'i' => mode = Mode::Insert,
+                        _ => {}
+                    },
+                    KeyCode::Enter => {
+                        let url = &search_results[selected].1;
+                        open::that(url).expect("Failed to open");
+                    }
+                    _ => {}
+                },
             }
         }
     }
