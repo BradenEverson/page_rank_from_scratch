@@ -12,7 +12,6 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Terminal,
 };
-use std::sync::{Arc, Mutex};
 use std::{io, rc::Rc};
 
 pub enum Mode {
@@ -21,9 +20,9 @@ pub enum Mode {
 }
 
 fn main() -> io::Result<()> {
-    let page_registry = WebCrawler::load("100_sites_with_roots.json")
+    let page_registry = WebCrawler::load("1_000_sites_with_roots.json")
         .expect("Failed to load page registry from file");
-    let pageranker = Arc::new(Mutex::new(PageRanker::from_registry(page_registry)));
+    let pageranker = PageRanker::from_registry(page_registry);
 
     let title_card = r#"
   _                       _      
@@ -118,7 +117,7 @@ fn main() -> io::Result<()> {
                         input.pop();
                     }
                     KeyCode::Enter => {
-                        if let Some(rankings) = pageranker.lock().unwrap().search(input.trim()) {
+                        if let Some(rankings) = pageranker.search(input.trim()) {
                             search_results = rankings
                                 .iter()
                                 .map(|site| (site.title.clone(), site.url.clone()))

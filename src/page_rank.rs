@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 
+use itertools::Itertools;
 use slotmap::SlotMap;
 
 use crate::{
@@ -47,6 +48,7 @@ impl PageRanker {
                 .connections
                 .iter()
                 .filter(|key| within_term.contains(key))
+                .unique()
                 .collect();
             if !connections.contains(site_key) {
                 connections.push(site_key);
@@ -80,7 +82,7 @@ impl PageRanker {
             .map(|(key, _)| key)
             .collect::<Vec<_>>();
 
-        if valid.len() <= RESULTS_TO_SHOW {
+        if valid.len() < RESULTS_TO_SHOW {
             valid
         } else {
             valid[..RESULTS_TO_SHOW].to_vec()

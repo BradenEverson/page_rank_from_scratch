@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.28.1"
+itertools = "0.13.0"
 open = "5.3.1"
 ratatui = "0.29.0"
 reqwest = "0.12.9"
