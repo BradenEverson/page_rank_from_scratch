@@ -8,4 +8,4 @@ This project contains everything necessary for a super simple search engine with
 4. PageRank implementation that brings all of this together to cater web pages based on title, sorted by highest ranking as the algorithm deems accurate.
 5. A RataTui terminal app that allows for searching a term and viewing the catered results (with vim motions of course)
 
-![sample search engine](https://github.com/user-attachments/assets/a0a81870-6fc4-4df6-be29-d78da7c78379)
+![sample search engine](https://github.com/user-attachments/assets/10584ede-1c16-4ae8-948d-1c0f649f6fff)
