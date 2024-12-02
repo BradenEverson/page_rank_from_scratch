@@ -1,7 +1,7 @@
 use page_rank_from_scratch::crawler::WebCrawler;
 
 /// How many sites to scrape for our fake internet
-pub const SITES_TO_SCRAPE: usize = 1_000;
+pub const SITES_TO_SCRAPE: usize = 100_000;
 
 #[tokio::main]
 async fn main() {
@@ -13,6 +13,6 @@ async fn main() {
         let _ = crawler.crawl().await;
     }
 
-    crawler.save("1_000_wiki_entries.json");
+    crawler.save("100_000_wiki_entries.json");
     println!("Saved!");
 }
