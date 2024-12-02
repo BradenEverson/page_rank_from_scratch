@@ -31,6 +31,9 @@ impl PageRanker {
         let mut graph: ConnectionGraph<Option<SiteKey>> = ConnectionGraph::default();
 
         let within_term = self.reduce_registry_by_term(term);
+        if within_term.len() == 0 {
+            return None;
+        }
 
         for site_key in &within_term {
             site_key_to_graph_keys.insert(site_key, graph.register());
