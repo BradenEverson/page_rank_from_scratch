@@ -1,7 +1,7 @@
 //! Web crawler for collecting site information and sites linked to from this site
 
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::HashSet,
     fs::File,
     io::{Read, Write},
     path::PathBuf,
@@ -9,16 +9,30 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use slotmap::{new_key_type, SlotMap};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 new_key_type! {pub struct SiteKey;}
 
 /// A webcrawling agent that parses a site's metadata and adds all links found within to a queue to
 /// do the same to
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct WebCrawler {
     pub site_pool: SlotMap<SiteKey, SiteLog>,
-    pub site_queue: VecDeque<SiteKey>,
+    pub site_queue: UnboundedReceiver<SiteKey>,
+    pub site_queue_sender: UnboundedSender<SiteKey>,
     pub visited: HashSet<String>,
+}
+
+impl Default for WebCrawler {
+    fn default() -> Self {
+        let (sender, receiver) = unbounded_channel();
+        Self {
+            site_queue: receiver,
+            site_queue_sender: sender,
+            site_pool: SlotMap::default(),
+            visited: HashSet::new(),
+        }
+    }
 }
 
 impl WebCrawler {
@@ -29,7 +43,7 @@ impl WebCrawler {
             ..Default::default()
         };
         let inserted = self.site_pool.insert(site_log);
-        self.site_queue.push_back(inserted);
+        let _ = push_to_queue(self.site_queue_sender.clone(), inserted);
 
         inserted
     }
@@ -54,7 +68,7 @@ impl WebCrawler {
 
     /// Crawls through the site queue, adding sites to the site pool and
     pub async fn crawl(&mut self) -> Option<()> {
-        if let Some(url) = self.site_queue.pop_front() {
+        if let Some(url) = self.site_queue.recv().await {
             self.parse_site(url).await
         } else {
             None
@@ -160,7 +174,9 @@ impl WebCrawler {
             })
             .collect();
 
-        self.site_queue.extend(hrefs.iter());
+        hrefs.iter().for_each(|key| {
+            let _ = self.site_queue_sender.send(*key);
+        });
         self.site_pool[url].connections.extend(hrefs);
 
         // Add self connection
@@ -169,6 +185,14 @@ impl WebCrawler {
 
         Some(())
     }
+}
+
+/// Pushes a sitekey to an async queue
+async fn push_to_queue(
+    sender: UnboundedSender<SiteKey>,
+    key: SiteKey,
+) -> Result<(), tokio::sync::mpsc::error::SendError<SiteKey>> {
+    sender.send(key)
 }
 
 /// Tracked information about a site
