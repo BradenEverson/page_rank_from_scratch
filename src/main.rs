@@ -41,7 +41,7 @@ fn main() -> io::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut input = String::new();
-    let mut search_results: Vec<(String, String)> = vec![];
+    let mut search_results: Vec<(&str, &str)> = vec![];
     let mut selected = 0;
     let mut mode = Mode::Normal;
 
@@ -72,7 +72,7 @@ fn main() -> io::Result<()> {
             frame.render_widget(title, chunks[0]);
 
             let result_area = chunks[2];
-            let visible_results = 12;
+            let visible_results = 8;
             let total_results = search_results.len();
 
             let mut start = 0;
@@ -120,16 +120,14 @@ fn main() -> io::Result<()> {
                         if let Some(rankings) = pageranker.search(input.trim()) {
                             search_results = rankings
                                 .iter()
-                                .map(|site| (site.title.clone(), site.url.clone()))
+                                .map(|site| (site.title.as_str(), site.url.as_str()))
                                 .collect();
+
+                            mode = Mode::Normal;
                             selected = 0;
                         } else {
-                            search_results = vec![(
-                                "No results found".to_string(),
-                                "Try a different query.".to_string(),
-                            )];
+                            search_results = vec![("No results found", "Try a different query.")];
                         }
-                        input.clear();
                     }
                     KeyCode::Up => {
                         if selected > 0 {
@@ -148,7 +146,7 @@ fn main() -> io::Result<()> {
                     KeyCode::Char(c) => match c {
                         'q' => break,
                         'j' => {
-                            if selected < search_results.len() {
+                            if selected < search_results.len() - 1 {
                                 selected += 1;
                             }
                         }
@@ -182,6 +180,6 @@ fn main() -> io::Result<()> {
 fn create_fixed_chunks(visible_results: usize, area: Rect) -> Rc<[Rect]> {
     Layout::default()
         .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Length(5); visible_results])
+        .constraints(vec![Constraint::Length(7); visible_results])
         .split(area)
 }
