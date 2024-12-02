@@ -43,7 +43,7 @@ impl WebCrawler {
             ..Default::default()
         };
         let inserted = self.site_pool.insert(site_log);
-        let _ = push_to_queue(self.site_queue_sender.clone(), inserted);
+        let _ = self.site_queue_sender.send(inserted);
 
         inserted
     }
@@ -76,7 +76,7 @@ impl WebCrawler {
     }
 
     pub fn urls_and_title_within_site(text: &str, root_url: &str) -> Option<(String, Vec<String>)> {
-        let mut hrefs = vec![];
+        let mut hrefs = HashSet::new();
         let mut name = String::new();
 
         let mut remaining = text.chars().rev().collect::<String>();
@@ -94,7 +94,6 @@ impl WebCrawler {
                     if character == open_quote {
                         break;
                     }
-
                     url.push(character);
                 }
 
@@ -102,7 +101,13 @@ impl WebCrawler {
                     url = format!("{root_url}{url}");
                 }
 
-                hrefs.push(url);
+                if let Some((normalized, _)) = url.split_once('?') {
+                    hrefs.insert(normalized.to_string());
+                } else if let Some((normalized, _)) = url.split_once('#') {
+                    hrefs.insert(normalized.to_string());
+                } else {
+                    hrefs.insert(url);
+                }
             } else if remaining.ends_with(">eltit<") {
                 remaining.pop();
                 remaining.pop();
@@ -124,7 +129,7 @@ impl WebCrawler {
             }
         }
 
-        Some((name.trim().to_string(), hrefs))
+        Some((name.trim().to_string(), hrefs.into_iter().collect()))
     }
 
     pub async fn parse_site(&mut self, url: SiteKey) -> Option<()> {
@@ -187,18 +192,29 @@ impl WebCrawler {
     }
 }
 
-/// Pushes a sitekey to an async queue
-async fn push_to_queue(
-    sender: UnboundedSender<SiteKey>,
-    key: SiteKey,
-) -> Result<(), tokio::sync::mpsc::error::SendError<SiteKey>> {
-    sender.send(key)
-}
-
 /// Tracked information about a site
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SiteLog {
     pub url: String,
     pub title: String,
     pub connections: Vec<SiteKey>,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::crawler::WebCrawler;
+
+    #[test]
+    fn url_dupes_spotted() {
+        let text = r#"<a href="https://example.com/path">Link</a>
+              <a href="https://example.com/path?query=value">Link</a>
+              <a href="https://example.com/path#section">Link</a>"#;
+
+        let root_url = "https://example.com";
+        let result = WebCrawler::urls_and_title_within_site(text, root_url);
+        assert_eq!(
+            result,
+            Some(("".to_string(), vec!["https://example.com/path".to_string()]))
+        );
+    }
 }

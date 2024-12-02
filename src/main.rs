@@ -20,7 +20,7 @@ pub enum Mode {
 }
 
 fn main() -> io::Result<()> {
-    let page_registry = WebCrawler::load("1_000_sites_with_roots.json")
+    let page_registry = WebCrawler::load("1_000_wiki_entries.json")
         .expect("Failed to load page registry from file");
     let pageranker = PageRanker::from_registry(page_registry);
 

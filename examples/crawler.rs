@@ -1,20 +1,18 @@
 use page_rank_from_scratch::crawler::WebCrawler;
 
 /// How many sites to scrape for our fake internet
-pub const SITES_TO_SCRAPE: usize = 10;
+pub const SITES_TO_SCRAPE: usize = 1_000;
 
 #[tokio::main]
 async fn main() {
     println!("Starting Crawler");
     let mut crawler = WebCrawler::default();
-    crawler.enqueue("https://en.wikipedia.org/wiki/Main_Page");
+    crawler.enqueue("https://www.wikipedia.org/");
 
     for _ in 0..SITES_TO_SCRAPE {
-        if crawler.crawl().await.is_none() {
-            panic!("Oops ran out of entries");
-        }
+        let _ = crawler.crawl().await;
     }
 
-    crawler.save("10_entries.json");
+    crawler.save("1_000_wiki_entries.json");
     println!("Saved!");
 }
